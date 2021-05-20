@@ -40,7 +40,12 @@ class Master {
   }
 
   def run() = {
-    val model = null
+    var model: EMModel = null
+    var n = 0
+
+    for (i <- 0 to 100) {
+      model = iterate(model, 0)
+    }
   }
 
 }
