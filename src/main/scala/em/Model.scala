@@ -1,10 +1,10 @@
 package em
 
 import breeze.linalg._
-import em.EMModel.{EmptyData, InputData, OutputData}
+import em.Model.{EmptyData, InputData, OutputData}
 
 
-case class EMModel(
+case class Model(
     means: Seq[DenseVector[Double]],
     covs: Seq[DenseMatrix[Double]],
     covsDet: Seq[Double],
@@ -14,9 +14,9 @@ case class EMModel(
     outputData: OutputData = EmptyData
 )
 
-object EMModel extends LinalHelper {
+object Model extends LinalHelper {
 
-  def mergeOutputModels(model1: EMModel, model2: EMModel, nonNormClustProbability: Seq[Double]): EMModel = {
+  def mergeOutputModels(model1: Model, model2: Model, nonNormClustProbability: Seq[Double]): Model = {
     model1.copy(outputData = mergeOutputData(model1.outputData, model2.outputData) match {
       case data: MStepStage1OutputData =>
         MStepStage1OutputData(data.nonNormLocalClustMeans
@@ -76,14 +76,14 @@ object EMModel extends LinalHelper {
 
   object EmptyData extends InputData with OutputData
 
-  def apply(means: Seq[DenseVector[Double]], covs: Seq[DenseMatrix[Double]], clustWeights: Seq[Double]): EMModel = {
+  def apply(means: Seq[DenseVector[Double]], covs: Seq[DenseMatrix[Double]], clustWeights: Seq[Double]): Model = {
     val covsDet = covs.map(det(_))
     val covsInv = covs.map(inv(_))
 
-    EMModel(means, covs, covsDet, covsInv, clustWeights)
+    Model(means, covs, covsDet, covsInv, clustWeights)
   }
 
-  def probability(model: EMModel, vector: DenseVector[Double], clusterIndex: Int): Double = {
+  def probability(model: Model, vector: DenseVector[Double], clusterIndex: Int): Double = {
     val prob = Math.pow(2 * Math.PI, -0.5 * vector.length) * Math.pow(model.covsDet(clusterIndex), -0.5)
     val mahaDist = vector scalarProduct (model.covsInv(clusterIndex) * vector).toDenseVector
     val expTerm = Math.pow(Math.E, -0.5 * mahaDist)

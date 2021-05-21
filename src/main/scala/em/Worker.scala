@@ -1,13 +1,14 @@
 package em
 
 import breeze.linalg.{DenseMatrix, DenseVector}
-import em.EMModel.{EStepInputData, EStepOutputData, MStepStage1OutputData, MStepStage2InputData, MStepStage2OutputData}
+import com.twitter.util.{Future, FuturePool}
+import em.Model.{EStepOutputData, MStepStage1OutputData, MStepStage2InputData, MStepStage2OutputData}
 
-class Worker(inputData: Seq[DenseVector[Double]], dim: Int, nClusters: Int) extends LinalHelper {
+class Worker(inputData: Seq[DenseVector[Double]], dim: Int, nClusters: Int, pool:FuturePool) extends LinalHelper {
 
   val gamma = DenseMatrix.zeros[Double](inputData.length, nClusters)
 
-  def eStep(model: EMModel): EMModel = {
+  def eStep(model: Model): Future[Model] = pool {
 
     val elProbs = DenseVector.zeros[Double](nClusters)
     var clustProbSum: Double = 0
@@ -17,7 +18,7 @@ class Worker(inputData: Seq[DenseVector[Double]], dim: Int, nClusters: Int) exte
     for ((element, idx) <- inputData.zipWithIndex) yield {
       clustProbSum = 0
       for (j <- 0 until nClusters) {
-        val prob = model.clustWeights(j) * EMModel.probability(model, element, j)
+        val prob = model.clustWeights(j) * Model.probability(model, element, j)
         elProbs(j) = prob
         clustProbSum += clustProbSum
       }
@@ -32,7 +33,7 @@ class Worker(inputData: Seq[DenseVector[Double]], dim: Int, nClusters: Int) exte
   }
 
 
-  def mStepStage1(model: EMModel): EMModel = {
+  def mStepStage1(model: Model): Future[Model] = pool {
     val clustNonNormLocalMeans = (0 until nClusters).map(_ => DenseVector.zeros[Double](dim)).toArray
 
     for {
@@ -45,7 +46,7 @@ class Worker(inputData: Seq[DenseVector[Double]], dim: Int, nClusters: Int) exte
     model.copy(outputData = MStepStage1OutputData(clustNonNormLocalMeans))
   }
 
-  def mStepStage2(model: EMModel): EMModel = {
+  def mStepStage2(model: Model): Future[Model] = pool {
     val data = model.inputData match {
       case d: MStepStage2InputData => d
       case _ => throw new IllegalStateException(s"Invalid input data type in e-step: ${model.inputData.getClass}")
