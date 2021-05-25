@@ -2,5 +2,5 @@ package em
 
 object Runner extends App {
 
-  val master = new Master
+//  val master = new Master
 }
